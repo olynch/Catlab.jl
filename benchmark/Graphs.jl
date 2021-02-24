@@ -9,8 +9,37 @@ const LG, MG = LightGraphs, MetaGraphs
 using Catlab, Catlab.CategoricalAlgebra, Catlab.Graphs
 using Catlab.Graphs.BasicGraphs: TheoryGraph
 
+testdatadir = joinpath(dirname(@__FILE__), "..", "test", "testdata")
+
+# Example Graphs
+# 
+################
+  
+# Stolen from the Lightgraphs benchmark suite
+
+dg1fn = joinpath(testdatadir, "graph-50-500.jgz")
+
+LG_GRAPHS = Dict{String,LG.DiGraph}(
+    "complete100"   => LG.complete_digraph(100),
+    # "5000-50000"    => LG.loadgraph(dg1fn)["graph-5000-50000"],
+    "path500"       => LG.path_digraph(500)
+)
+
+GRAPHS = Dict(k => Graph(g) for (k,g) in LG_GRAPHS)
+
+LG_SYMGRAPHS = Dict{String,LG.Graph}(
+    "complete100"   => LG.complete_graph(100),
+    "tutte"         => LG.smallgraph(:tutte),
+    "path500"       => LG.path_graph(500),
+    # "5000-49947"    => LG.SimpleGraph(DIGRAPHS["5000-50000"])
+)
+
+SYMGRAPHS = Dict(k => SymmetricGraph(g) for (k,g) in LG_SYMGRAPHS)
+
+
 # Helpers
-#########
+#
+########
 
 # `bench_iter_edges` and `bench_has_edge` adapted from LightGraphs:
 # https://github.com/JuliaGraphs/LightGraphs.jl/blob/master/benchmark/core.jl
@@ -60,14 +89,24 @@ end
 @inline Graphs.has_edge(g::LG.AbstractGraph, args...) = LG.has_edge(g, args...)
 @inline Graphs.neighbors(g::LG.AbstractGraph, args...) = LG.neighbors(g, args...)
 
+function lg_connected_components_projection(g)
+  label = Vector{Int}(undef, LG.nv(g))
+  LG.connected_components!(label, g)
+end
+
 # Graphs
 ########
 
 bench = SUITE["Graph"] = BenchmarkGroup()
 
 n = 10000
-bench["make-path"] = @benchmarkable path_graph(Graph, n)
-bench["make-path-lightgraphs"] = @benchmarkable begin
+bench[("make-path", "Catlab")] = @benchmarkable path_graph(Graph,n)
+  g = Graph()
+  add_vertices!(g, n)
+  add_edges!(g, 1:(n-1), 2:n)
+end
+
+bench[("make-path", "LightGraphs")] = @benchmarkable begin
   g = LG.DiGraph()
   LG.add_vertices!(g, n)
   for v in 1:(n-1)
@@ -105,14 +144,22 @@ bench[("star-graph-components","Catlab-proj")] =
 bench[("star-graph-components","LightGraphs")] =
   @benchmarkable LG.weakly_connected_components($lg)
 
+bench = SUITE["GraphConnComponents"] BenchmarkGroup()
+
+for gn in keys(GRAPHS)
+  bench[(gn,"Catlab")] = @benchmarkable connected_component_projection($(GRAPHS[gn]))
+  bench[(gn,"LightGraphs")] = @benchmarkable lg_connected_components_projection($(LG_GRAPHS[gn]))
+end
+
 # Symmetric graphs
 ##################
 
 bench = SUITE["SymmetricGraph"] = BenchmarkGroup()
 
 n = 10000
-bench["make-path"] = @benchmarkable path_graph(SymmetricGraph, n)
-bench["make-path-lightgraphs"] = @benchmarkable begin
+bench[("make-path", "Catlab")] = @benchmarkable path_graph(SymmetricGraph, n)
+
+bench[("make-path", "LightGraphs")] = @benchmarkable begin
   g = LG.Graph()
   LG.add_vertices!(g, n)
   for v in 1:(n-1)
@@ -131,33 +178,12 @@ bench[("has-edge", "LightGraphs")] = @benchmarkable bench_has_edge($lg)
 bench[("iter-neighbors", "Catlab")] = @benchmarkable bench_iter_neighbors($g)
 bench[("iter-neighbors", "LightGraphs")] = @benchmarkable bench_iter_neighbors($lg)
 
-function lg_connected_components_projection(g)
-  label = Vector{Int}(undef, LG.nv(g))
-  LG.connected_components!(label, g)
+bench = SUITE["SymmetricGraphConnComponent"] = BenchmarkGraph()
+
+for gn in keys(SYMGRAPHS)
+  bench[(gn,"Catlab")] = @benchmarkable connected_component_projection($(SYMGRAPHS[gn]))
+  bench[(gn,"LightGraphs")] = @benchmarkable lg_connected_components_projection($(LG_SYMGRAPHS[gn]))
 end
-
-n₀ = 2000
-g₀ = path_graph(SymmetricGraph, n₀)
-g = ob(coproduct(fill(g₀, 5)))
-lg = LG.Graph(g)
-bench[("path-graph-components","Catlab")] = @benchmarkable connected_components($g)
-bench[("path-graph-components","Catlab-proj")] =
-  @benchmarkable connected_component_projection($g)
-bench[("path-graph-components","LightGraphs")] =
-  @benchmarkable LG.connected_components($lg)
-bench[("path-graph-components","LightGraphs-proj")] =
-  @benchmarkable lg_connected_components_projection($lg)
-
-g₀ = star_graph(SymmetricGraph, n₀)
-g = ob(coproduct(fill(g₀, 5)))
-lg = LG.Graph(g)
-bench[("star-graph-components", "Catlab")] = @benchmarkable connected_components($g)
-bench[("star-graph-components", "Catlab-proj")] =
-  @benchmarkable connected_component_projection($g)
-bench[("star-graph-components", "LightGraphs")] =
-  @benchmarkable LG.connected_components($lg)
-bench[("star-graph-components", "LightGraphs-proj")] =
-  @benchmarkable lg_connected_components_projection($lg)
 
 # Weighted graphs
 #################

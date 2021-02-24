@@ -17,7 +17,8 @@ export AbstractGraph, Graph, nv, ne, src, tgt, edges, vertices,
   AbstractHalfEdgeGraph, HalfEdgeGraph, vertex, half_edges,
   add_dangling_edge!, add_dangling_edges!,
   AbstractWeightedGraph, WeightedGraph, weight,
-  AbstractSymmetricWeightedGraph, SymmetricWeightedGraph
+  AbstractSymmetricWeightedGraph, SymmetricWeightedGraph,
+  from_lightgraph
 
 import Base: inv
 using Requires
@@ -515,6 +516,14 @@ function __init__()
         LightGraphs.add_edge!(lg, s, t)
       end
       lg
+    end
+
+    function from_lightgraph(lg::SimpleDiGraph)
+      g = Graph(LightGraphs.nv(lg))
+      for e in edges(lg)
+        add_edge!(g,src(lg,e),tgt(lg,e))
+      end
+      g
     end
 
     function SimpleGraph(g::AbstractHalfEdgeGraph)
