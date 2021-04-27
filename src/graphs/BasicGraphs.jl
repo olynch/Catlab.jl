@@ -11,6 +11,7 @@ export AbstractGraph, Graph, nv, ne, src, tgt, edges, vertices,
   has_edge, has_vertex, add_edge!, add_edges!, add_vertex!, add_vertices!,
   rem_edge!, rem_edges!, rem_vertex!, rem_vertices!,
   neighbors, inneighbors, outneighbors, all_neighbors, induced_subgraph,
+  indegree, outdegree, degree,
   AbstractSymmetricGraph, SymmetricGraph, inv,
   AbstractReflexiveGraph, ReflexiveGraph, refl,
   AbstractSymmetricReflexiveGraph, SymmetricReflexiveGraph,
@@ -181,6 +182,32 @@ function induced_subgraph(g::G, vs::AbstractVector{Int}) where G <: AbstractACSe
   sub = G()
   copy_parts!(sub, g, V=vs, E=collect(Int, es))
   sub
+end
+
+""" Degrees of a graph
+"""
+function indegree(g::G, v::Int) where G <: AbstractACSet
+  length(inneighbors(g,v))
+end
+
+function indegree(g::G) where G <: AbstractACSet
+  [indegree(g,v) for v in 1:nv(g)]
+end
+
+function outdegree(g::G, v::Int) where G <: AbstractACSet
+  length(outneighbors(g,v))
+end
+
+function outdegree(g::G) where G <: AbstractACSet
+  [outdegree(g,v) for v in 1:nv(g)]
+end
+
+function degree(g::G, v::Int) where G <: AbstractACSet
+  indegree(g,v) + outdegree(g,v)
+end
+
+function degree(g::G) where G <: AbstractACSet
+  [degree(g,v) for v in 1:nv(g)]
 end
 
 # Symmetric graphs
