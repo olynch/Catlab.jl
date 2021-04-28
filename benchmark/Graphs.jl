@@ -25,7 +25,7 @@ LG_GRAPHS = Dict{String,LG.DiGraph}(
     "path500"       => LG.path_digraph(500)
 )
 
-GRAPHS = Dict(k => Graph(g) for (k,g) in LG_GRAPHS)
+GRAPHS = Dict(k => from_lightgraph(g) for (k,g) in LG_GRAPHS)
 
 LG_SYMGRAPHS = Dict{String,LG.Graph}(
     "complete100"   => LG.complete_graph(100),
@@ -34,7 +34,7 @@ LG_SYMGRAPHS = Dict{String,LG.Graph}(
     # "5000-49947"    => LG.SimpleGraph(DIGRAPHS["5000-50000"])
 )
 
-SYMGRAPHS = Dict(k => SymmetricGraph(g) for (k,g) in LG_SYMGRAPHS)
+SYMGRAPHS = Dict(k => from_lightgraph(g) for (k,g) in LG_SYMGRAPHS)
 
 
 # Helpers
@@ -101,10 +101,6 @@ bench = SUITE["Graph"] = BenchmarkGroup()
 
 n = 10000
 bench[("make-path", "Catlab")] = @benchmarkable path_graph(Graph,n)
-  g = Graph()
-  add_vertices!(g, n)
-  add_edges!(g, 1:(n-1), 2:n)
-end
 
 bench[("make-path", "LightGraphs")] = @benchmarkable begin
   g = LG.DiGraph()
@@ -144,7 +140,7 @@ bench[("star-graph-components","Catlab-proj")] =
 bench[("star-graph-components","LightGraphs")] =
   @benchmarkable LG.weakly_connected_components($lg)
 
-bench = SUITE["GraphConnComponents"] BenchmarkGroup()
+bench = SUITE["GraphConnComponents"] = BenchmarkGroup()
 
 for gn in keys(GRAPHS)
   bench[(gn,"Catlab")] = @benchmarkable connected_component_projection($(GRAPHS[gn]))
@@ -178,7 +174,7 @@ bench[("has-edge", "LightGraphs")] = @benchmarkable bench_has_edge($lg)
 bench[("iter-neighbors", "Catlab")] = @benchmarkable bench_iter_neighbors($g)
 bench[("iter-neighbors", "LightGraphs")] = @benchmarkable bench_iter_neighbors($lg)
 
-bench = SUITE["SymmetricGraphConnComponent"] = BenchmarkGraph()
+bench = SUITE["SymmetricGraphConnComponent"] = BenchmarkGroup()
 
 for gn in keys(SYMGRAPHS)
   bench[(gn,"Catlab")] = @benchmarkable connected_component_projection($(SYMGRAPHS[gn]))
@@ -288,3 +284,38 @@ bench[("indexed-lookup","MetaGraphs")] = @benchmarkable begin
     @assert $mg["v$i", :label] == i
   end
 end
+
+# Random Graphs
+###############
+
+bench = SUITE["RandomGraph"] = BenchmarkGroup()
+
+sizes = [10,100,1000,10000]
+ps = [0.001,0.1, 0.5]
+for size in sizes, p in ps
+  bench[("erdos_renyi-$size-$p", "Catlab")] =
+    @benchmarkable erdos_renyi($Graph, $size, $p)
+  bench[("erdos_renyi-$size-$p", "LightGraphs")] =
+    @benchmarkable LightGraphs.erdos_renyi($size, $p)
+end
+
+ks = [2,10,20]
+
+for size in sizes, k in ks
+  bench[("expected_degree_graph-$size-$k", "Catlab")] =
+    @benchmarkable expected_degree_graph($Graph, $([min(k,size-1) for _ in 1:size]))
+  bench[("expected_degree_graph-$size-$k", "LightGraphs")] =
+    @benchmarkable LightGraphs.expected_degree_graph($([min(k,size-1) for _ in 1:size]))
+end
+
+for size in sizes, k in ks
+  bench[("watts_strogatz-$size-$k", "Catlab")] =
+    @benchmarkable watts_strogatz($Graph, $size, $(min(k,size-1)), 0.5)
+  bench[("watts_strogatz-$size-$k", "LightGraphs")] =
+    @benchmarkable LightGraphs.watts_strogatz($size, $(min(k,size-1)), 0.5)
+end
+  
+# Searching
+###########
+
+

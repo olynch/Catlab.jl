@@ -547,8 +547,16 @@ function __init__()
 
     function from_lightgraph(lg::SimpleDiGraph)
       g = Graph(LightGraphs.nv(lg))
-      for e in edges(lg)
-        add_edge!(g,src(lg,e),tgt(lg,e))
+      for e in LightGraphs.edges(lg)
+        add_edge!(g,LightGraphs.src(e),LightGraphs.dst(e))
+      end
+      g
+    end
+
+    function from_lightgraph(lg::SimpleGraph)
+      g = SymmetricGraph(LightGraphs.nv(lg))
+      for e in LightGraphs.edges(lg)
+        add_edge!(g,LightGraphs.src(e),LightGraphs.dst(e))
       end
       g
     end
