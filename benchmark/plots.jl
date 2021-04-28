@@ -8,15 +8,19 @@ function graphbench_data(suite)
   graphbenches = suite["Graphs"]
   catlab_times = Dict{Tuple{String,String},Float64}()
   for (subcat,subsuite) in graphbenches
-    for ((bench,platform),result) in subsuite
-      if platform == "Catlab"
-        catlab_times[(subcat,bench)] = median(result).time
+    for (bench,platforms) in subsuite
+      for (platform,result) in platforms
+        if platform == "Catlab"
+            catlab_times[(subcat,bench)] = median(result).time
+        end
+        new_row = (subcat=subcat,
+                    bench=bench,
+                    platform=platform,
+                    mt_normalized=0.,
+                    mediantime=median(result).time)
+        println(new_row)
+        push!(data, new_row)
       end
-      push!(data, (subcat=subcat,
-                   bench=bench,
-                   platform=platform,
-                   mt_normalized=0.,
-                   mediantime=median(result).time))
     end
   end
   for i in 1:length(data.subcat)
