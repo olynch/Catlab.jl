@@ -8,8 +8,8 @@ function graphbench_data(suite)
   graphbenches = suite["Graphs"]
   catlab_times = Dict{Tuple{String,String},Float64}()
   for (subcat,subsuite) in graphbenches
-    for (bench,platforms) in subsuite
-      for (platform,result) in platforms
+    for (platform,results) in subsuite
+      for (bench,result) in results
         if platform == "Catlab"
             catlab_times[(subcat,bench)] = median(result).time
         end
@@ -18,7 +18,6 @@ function graphbench_data(suite)
                     platform=platform,
                     mt_normalized=0.,
                     mediantime=median(result).time)
-        println(new_row)
         push!(data, new_row)
       end
     end
@@ -40,7 +39,7 @@ end
 
 function plot_subcat(dat,subcat)
   subcat_data(dat,subcat) |>
-    @df groupedbar(:bench,log.(2,:mt_normalized),group=:platform,
+    @df groupedbar(:bench,:mt_normalized,group=:platform,
                    xrotation=45,legend=:outerright,bar_width=0.5)
 end
 
