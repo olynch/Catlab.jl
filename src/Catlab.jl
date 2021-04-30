@@ -12,5 +12,6 @@ include("wiring_diagrams/WiringDiagrams.jl")
 include("graphics/Graphics.jl")
 include("programs/Programs.jl")
 include("linear_algebra/LinearAlgebra.jl")
+include("parametrized_functions/ParametrizedFunctions.jl")
 
 end
