@@ -1,6 +1,12 @@
 module ParametrizedFunctions
 
-using ..GAT, ..Theories, ..CategoricalAlgebra.Limits
+export Seg, SegMap, PFDom, PFunction
+
+using ..GAT, ..Theories, ..CategoricalAlgebra.Limits, ..CategoricalAlgebra.FreeDiagrams
+using MLStyle
+import ..Theories: dom, codom, compose, ⋅, id
+import ..CategoricalAlgebra.Limits: limit
+import Base: length
 
 struct Seg
   length::Int
@@ -25,10 +31,10 @@ end
 end
 
 function limit(Xs::DiscreteDiagram{Seg})
-  n = Seg(sum(length.(Xs)))
   splits = [0;cumsum(length.(Xs))]
-  πs = [SegMap(n,Xs[i],(splits[i]+1):splits[i+1]) for i in eachindex(Xs)]
-  Limit(Xs, Multispan(Seg(n), πs))
+  n = Seg(splits[end])
+  πs = [SegMap(n,Xs[i],(splits[i]+1):splits[i+1]) for i in 1:length(Xs)]
+  Limit(Xs, Multispan(n, πs))
 end
 
 (f::SegMap)(v::AbstractVector) = @view v[f.range]
@@ -41,43 +47,68 @@ function indom(d::PFDom{T}, v::AbstractVector{T}) where {T}
   length(d.seg) == length(v)
 end
 
+@data PFunctionImpl{T} begin
+  Fun(Function)
+  Chain(Vector{Tuple{SegMap, PFunction{T}}})
+  Parallel(Vector{Tuple{SegMap, PFunction{T}}})
+end
+
 struct PFunction{T}
   dom::PFDom{T}
   codom::PFDom{T}
   P::PFDom{T}
-  chain::Vector{Tuple{SegMap,Function}}
+  impl::PFunctionImpl{T}
 end
 
-_id(d::PFDom{T}) where {T} = PFunction{T}(d, d, PFDom{T}(Seg(0)), Tuple{SegMap,Function}[])
+id(d::PFDom{T}) where {T} = PFunction{T}(d, d, PFDom{T}(Seg(0)), Chain(Tuple{SegMap,Function}[]))
+otimes(d1::PFDom{T}, d2::PFDom{T}) where {T} = PFDom{T}(Seg(d1.seg.length + d2.seg.length))
+munit(::Type{PFDom{T}}) where {T} = PFDom{T}(Seg(0))
 
-function _compose(fs::PFunction{T}...) where {T<:Real}
+function compose(fs::PFunction{T}...) where {T<:Real}
   n = length(fs)
   for i in 1:(n-1)
     @assert fs[i].codom == fs[i+1].dom
   end
-  prod = product([f.P for f in fs])
+  prod = product([f.P.seg for f in fs])
   PFunction{T}(
     fs[1].dom,
     fs[end].codom,
-    apex(prod.cone),
-    vcat([(compose(legs(prod.cone)[i], segmap), f) for (segmap,f) in fs[i].chain] for i in 1:n)
+    PFDom{T}(apex(prod.cone)),
+    Chain([zip(legs(prod.cone), fs)...])
   )
 end
 
-@instance Category{PFDom, PFunction} begin
-  dom(f::PFunction) = f.dom
-  codom(f::PFunction) = f.codom
-  id(d::PFDom) = _id(d)
-  compose(fs::PFunction...) = _compose(fs...)
+function otimes(fs::PFunction{T}...) where {T<:Real}
+  n = length(fs)
+  newdom = product([f.dom.seg for f in fs])
+  newcodom = product([f.codom.seg for f in fs])
+  newP = product([f.P.seg for f in fs])
+  PFunction{T}(
+    apex(newdom.cone),
+    apex(newcodom.cone),
+    apex(newP.cone),
+    Parallel([zip(legs(newP.cone), fs)...])
+  )
 end
 
-function (f::PFunction{T})(p::AbstractVector{T}, x::AbstractVector{T}) where {T}
-  @assert indom(f.dom,x) && indom(f.P, p)
-  y = x
-  for (segmap,g) in f.chain
-    y = g(segmap(p),y)
-  end
-  y
+function braid(f::PFDom{T},g::PFDom{T}) where {T <: Real}
+  
 end
+
+@instance SymmetricMonoidalCategory{PFDom, PFunction} begin
+  @import id, compose, otimes
+
+  dom(f::PFunction) = f.dom
+  codom(f::PFunction) = f.codom
+end
+
+# function (f::PFunction{T})(p::AbstractVector{T}, x::AbstractVector{T}) where {T}
+#   @assert indom(f.dom,x) && indom(f.P, p)
+#   y = x
+#   for (segmap,g) in f.chain
+#     y = g(segmap(p),y)
+#   end
+#   y
+# end
 
 end
