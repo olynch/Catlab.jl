@@ -43,3 +43,9 @@ function plot_subcat(dat,subcat)
                    xrotation=45,legend=:outerright,bar_width=0.5)
 end
 
+function plot_all_subcats(dat)
+  for subcat in unique(dat[!,:subcat])
+    fig = plot_subcat(dat,subcat)
+    savefig(fig, string("figures/",subcat,".pdf"))
+  end
+end
