@@ -235,7 +235,7 @@ end
 
 bench = SUITE["LabeledGraph"] = BenchmarkGroup()
 clbench = bench["Catlab"] = BenchmarkGroup()
-lgbench = bench["LightGraphs"] = BenchmarkGroup()
+lgbench = bench["MetaGraphs"] = BenchmarkGroup()
 
 @present TheoryLabeledGraph <: TheoryGraph begin
   Label::Data
