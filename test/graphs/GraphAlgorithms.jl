@@ -8,7 +8,9 @@ using Catlab.Graphs
 
 g = Graph(6)
 add_edges!(g, [2,3], [4,5])
-@test connected_components(g) == [[1], [2,4], [3,5], [6]]
+@test sort(sort.(connected_components(g))) == [[1], [2,4], [3,5], [6]]
+@test sort(sort.(connected_components(g; alg=connected_component_projection_bfs))) ==
+  [[1], [2,4], [3,5], [6]]
 
 # DAGs
 ######

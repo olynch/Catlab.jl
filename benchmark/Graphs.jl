@@ -99,8 +99,8 @@ end
 
 bench = SUITE["Graph"] = BenchmarkGroup()
 clbench = bench["Catlab"] = BenchmarkGroup()
-clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
-clprojbench = bench["Catlab-proj"] = BenchmarkGroup()
+# clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
+# clprojbench = bench["Catlab-proj"] = BenchmarkGroup()
 lgbench = bench["LightGraphs"] = BenchmarkGroup()
 
 n = 10000
@@ -118,38 +118,35 @@ g = path_graph(Graph, n)
 lg = LG.DiGraph(g)
 
 clbench["iter-edges"] = @benchmarkable bench_iter_edges($g)
-clvecbench["iter-edges"] = @benchmarkable bench_iter_edges_vectorized($g)
 lgbench["iter-edges"] = @benchmarkable bench_iter_edges($lg)
 clbench["has-edge"] = @benchmarkable bench_has_edge($g)
 lgbench["has-edge"] = @benchmarkable bench_has_edge($lg)
 clbench["iter-neighbors"] = @benchmarkable bench_iter_neighbors($g)
 lgbench["iter-neighbors"] = @benchmarkable bench_iter_neighbors($lg)
 
-n₀ = 2000
-g₀ = path_graph(Graph, n₀)
-g = ob(coproduct(fill(g₀, 5)))
-lg = LG.DiGraph(g)
-clbench["path-graph-components"] = @benchmarkable connected_components($g)
-clprojbench["path-graph-components"] =
-  @benchmarkable connected_component_projection($g)
-lgbench["path-graph-components"] =
-  @benchmarkable LG.weakly_connected_components($lg)
-
-g₀ = star_graph(Graph, n₀)
-g = ob(coproduct(fill(g₀, 5)))
-lg = LG.DiGraph(g)
-clbench["star-graph-components"] = @benchmarkable connected_components($g)
-clprojbench["star-graph-components"] =
-  @benchmarkable connected_component_projection($g)
-lgbench["star-graph-components"] =
-  @benchmarkable LG.weakly_connected_components($lg)
 
 bench = SUITE["GraphConnComponents"] = BenchmarkGroup()
 clbench = bench["Catlab"] = BenchmarkGroup()
 lgbench = bench["LightGraphs"] = BenchmarkGroup()
 
+n₀ = 2000
+g₀ = path_graph(Graph, n₀)
+g = ob(coproduct(fill(g₀, 5)))
+lg = LG.DiGraph(g)
+clbench["path-graph"] =
+  @benchmarkable connected_component_projection_bfs($g)
+lgbench["path-graph"] =
+  @benchmarkable LG.weakly_connected_components($lg)
+
+g₀ = star_graph(Graph, n₀)
+g = ob(coproduct(fill(g₀, 5)))
+lg = LG.DiGraph(g)
+clbench["star-graph-components"] = @benchmarkable connected_component_projection_bfs($g)
+lgbench["star-graph-components"] =
+  @benchmarkable LG.weakly_connected_components($lg)
+
 for gn in keys(GRAPHS)
-  clbench[gn] = @benchmarkable connected_component_projection($(GRAPHS[gn]))
+  clbench[gn] = @benchmarkable connected_component_projection_bfs($(GRAPHS[gn]))
   lgbench[gn] = @benchmarkable lg_connected_components_projection($(LG_GRAPHS[gn]))
 end
 
@@ -158,7 +155,7 @@ end
 
 bench = SUITE["SymmetricGraph"] = BenchmarkGroup()
 clbench = bench["Catlab"] = BenchmarkGroup()
-clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
+# clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
 lgbench = bench["LightGraphs"] = BenchmarkGroup()
 
 n = 10000
@@ -176,7 +173,6 @@ g = path_graph(SymmetricGraph, n)
 lg = LG.Graph(g)
 
 clbench["iter-edges"] = @benchmarkable bench_iter_edges($g)
-clvecbench["iter-edges"] = @benchmarkable bench_iter_edges_vectorized($g)
 lgbench["iter-edges"] = @benchmarkable bench_iter_edges($lg)
 clbench["has-edge"] = @benchmarkable bench_has_edge($g)
 lgbench["has-edge"] = @benchmarkable bench_has_edge($lg)
@@ -188,7 +184,7 @@ clbench = bench["Catlab"] = BenchmarkGroup()
 lgbench = bench["LightGraphs"] = BenchmarkGroup()
 
 for gn in keys(SYMGRAPHS)
-  clbench[gn] = @benchmarkable connected_component_projection($(SYMGRAPHS[gn]))
+  clbench[gn] = @benchmarkable connected_component_projection_bfs($(SYMGRAPHS[gn]))
   lgbench[gn] = @benchmarkable lg_connected_components_projection($(LG_SYMGRAPHS[gn]))
 end
 
@@ -197,14 +193,14 @@ end
 
 bench = SUITE["WeightedGraph"] = BenchmarkGroup()
 clbench = bench["Catlab"] = BenchmarkGroup()
-clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
-lgbench = bench["LightGraphs"] = BenchmarkGroup()
+# clvecbench = bench["Catlab-vectorized"] = BenchmarkGroup()
+lgbench = bench["MetaGraphs"] = BenchmarkGroup()
 
 n = 10000
 g = path_graph(WeightedGraph{Float64}, n; E=(weight=range(0,1,length=n-1),))
 mg = MG.MetaDiGraph(g)
 
-clvecbench["sum-weights"] = @benchmarkable sum(weight($g))
+# clvecbench["sum-weights"] = @benchmarkable sum(weight($g))
 clbench["sum-weights"] = @benchmarkable begin
   total = 0.0
   for e in edges($g)
@@ -220,9 +216,9 @@ lgbench["sum-weights"] = @benchmarkable begin
   total
 end
 
-clvecbench["increment-weights"] = @benchmarkable begin
-  $g[:weight] = $g[:weight] .+ 1.0
-end
+# clvecbench["increment-weights"] = @benchmarkable begin
+#   $g[:weight] = $g[:weight] .+ 1.0
+# end
 clbench["increment-weights"] = @benchmarkable begin
   for e in edges($g)
     $g[e,:weight] += 1.0

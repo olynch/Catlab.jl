@@ -128,8 +128,9 @@ function erdos_renyi(::Type{T}, n::Int, m::Int; V=(;),
   while ne(g) < totale
     src = rand(rng, 1:n)
     tgt = rand(rng, 1:n)
-    src != tgt && isempty(edges(g, src, tgt)) && add_edge!(g, src, tgt)
+    src != tgt && isempty(edges(g, src, tgt)) && add_edge!(g,src,tgt)
   end
+
   return g
 end
 

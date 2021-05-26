@@ -1,10 +1,10 @@
 """ Algorithms on graphs based on C-sets.
 """
 module GraphAlgorithms
-export connected_components, connected_component_projection, topological_sort,
-  transitive_reduction!
+export connected_components, connected_component_projection, connected_component_projection_bfs,
+  topological_sort, transitive_reduction!
 
-using DataStructures: Stack
+using DataStructures: Stack, Queue, enqueue!, dequeue!
 
 using ...Theories: dom, codom
 using ...CSetDataStructures, ..BasicGraphs
@@ -16,8 +16,8 @@ using ...CSetDataStructures, ..BasicGraphs
 
 Returns a vector of vectors, which are the components of the graph.
 """
-function connected_components(g::AbstractACSet)::Vector{Vector{Int}}
-  π = connected_component_projection(g)
+function connected_components(g::AbstractACSet; alg::Function=connected_component_projection)::Vector{Vector{Int}}
+  π = alg(g)
   components = [ Int[] for c in codom(π) ]
   for v in dom(π)
     push!(components[π(v)], v)
@@ -30,7 +30,9 @@ end
 Returns a function in FinSet{Int} from the vertex set to the set of components.
 """
 function connected_component_projection end
-# Implemented elsewhere, where coequalizers are available.
+
+function connected_component_projection_bfs end
+# Implemented elsewhere, where coequalizers and FinFunctions are available.
 
 # DAGs
 ######

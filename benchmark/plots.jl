@@ -37,15 +37,16 @@ function subcat_data(dat,subcat)
     DataFrame
 end
 
-function plot_subcat(dat,subcat)
+function plot_subcat(dat,subcat,yscale=:linear)
   subcat_data(dat,subcat) |>
     @df groupedbar(:bench,:mt_normalized,group=:platform,
-                   xrotation=45,legend=:outerright,bar_width=0.5)
+                   xrotation=45,legend=:outerright,bar_width=0.5,yscale=yscale)
 end
 
 function plot_all_subcats(dat)
   for subcat in unique(dat[!,:subcat])
-    fig = plot_subcat(dat,subcat)
+    yscale = subcat ∈ ["WeightedGraph", "LabeledGraph"] ? :log : :linear
+    fig = plot_subcat(dat,subcat,yscale)
     savefig(fig, string("figures/",subcat,".pdf"))
   end
 end
