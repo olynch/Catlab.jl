@@ -141,8 +141,8 @@ lgbench["path-graph"] =
 g₀ = star_graph(Graph, n₀)
 g = ob(coproduct(fill(g₀, 5)))
 lg = LG.DiGraph(g)
-clbench["star-graph-components"] = @benchmarkable connected_component_projection_bfs($g)
-lgbench["star-graph-components"] =
+clbench["star-graph"] = @benchmarkable connected_component_projection_bfs($g)
+lgbench["star-graph"] =
   @benchmarkable LG.weakly_connected_components($lg)
 
 for gn in keys(GRAPHS)
