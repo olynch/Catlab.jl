@@ -204,3 +204,65 @@ function Presentation(CD::Type{T}, AD::Type{S}) where {T <: CatDesc, S <: AttrDe
   map(gens -> add_generators!(pres, gens), [obs, homs, datas, attrs])
   return pres
 end
+
+"""
+Temporary store for some code: move this before making PR
+"""
+
+macro declare_schema(head, body)
+  decl, extend = @match head begin
+    Expr(:(<:), decl, extend::Symbol) => (decl, extend)
+    _ => (head, Presentation(FreeSchema))
+  end
+  name, Ts = @match decl begin
+    Expr(:curly, name::Symbol, Ts...) => (name, [Ts...])
+    name::Symbol => (name, [])
+  end
+  :($(esc(name)) = $(GlobalRef(Theories, :parse_schema))(
+    $Ts, $(Expr(:quote, body)), $(esc(extend))) )
+end
+
+""" Parse a Presentation{Schema} from a specialized syntax for it
+
+See also [`@declare_schema`](@ref).
+"""
+function parse_schema(Ts::Vector, body::Expr, extend=Presentation(FreeSchema))
+  p = copy(extend)
+  lines = @match strip_lines(body) begin
+    Expr(:block, lines...) => lines
+    _ => error("unsupported body format")
+  end
+  add_generators!(p, Ts, :AttrType)
+  arrow_decls = []
+  # Initial pass to add objects
+  for line in lines
+    @match line begin
+      name::Symbol => add_generator!(p,name,:Ob,[])
+      Expr(:call, name::Symbol, args...) => begin
+        add_generator!(p,name,:Ob)
+        push!(arrow_decls, (name,args))
+      end
+      _ => Present.eval_stmt!(p,line)
+    end
+  end
+  # Second pass to add homs/attrs
+  for (name,args) in arrow_decls
+    eval_object_args(p,name,args)
+  end
+  p
+end
+
+
+function eval_object_args(p::Presentation,name,args)
+  for arg in args
+    hom, codom = @match strip_lines(arg) begin
+      Expr(:(::), hom, codom) => (hom, codom)
+      _ => error("invalid hom expr")
+    end
+    if codom ∈ nameof.(p.generators[:AttrType])
+      add_generator!(p, hom, :Attr, [name, codom])
+    else
+      add_generator!(p, hom, :Hom, [name, codom])
+    end
+  end
+end
